@@ -195,6 +195,44 @@ export const addResources = (currentResources: Resources, amount: Resources): vo
 }
 
 /**
+ * 安全地添加资源（会检查仓储容量上限）
+ * @param planet 星球对象
+ * @param amount 要添加的资源
+ * @param storageCapacityBonus 仓储容量加成
+ * @returns 实际添加的资源数量和溢出的资源数量
+ */
+export const addResourcesSafely = (
+  planet: Planet,
+  amount: Resources,
+  storageCapacityBonus: number
+): { added: Resources; overflow: Resources } => {
+  const capacity = calculateResourceCapacity(planet, storageCapacityBonus)
+
+  const added: Resources = { metal: 0, crystal: 0, deuterium: 0, darkMatter: 0, energy: 0 }
+  const overflow: Resources = { metal: 0, crystal: 0, deuterium: 0, darkMatter: 0, energy: 0 }
+
+  // 处理每种资源
+  const resources: Array<keyof Resources> = ['metal', 'crystal', 'deuterium', 'darkMatter']
+
+  for (const resourceType of resources) {
+    const currentAmount = planet.resources[resourceType]
+    const amountToAdd = amount[resourceType]
+    const maxCapacity = capacity[resourceType]
+
+    // 计算可以添加的量（不超过容量上限）
+    const spaceAvailable = Math.max(0, maxCapacity - currentAmount)
+    const actuallyAdded = Math.min(amountToAdd, spaceAvailable)
+    const overflowed = amountToAdd - actuallyAdded
+
+    planet.resources[resourceType] += actuallyAdded
+    added[resourceType] = actuallyAdded
+    overflow[resourceType] = overflowed
+  }
+
+  return { added, overflow }
+}
+
+/**
  * 资源产量详细信息（用于UI展示）
  */
 export interface ProductionBreakdown {
