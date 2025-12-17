@@ -4,7 +4,7 @@
 
     <!-- 标签切换 -->
     <Tabs v-model="activeTab" class="w-full">
-      <TabsList class="grid w-full grid-cols-2 sm:grid-cols-4">
+      <TabsList class="grid w-full grid-cols-2 sm:grid-cols-4" :tab-count="4">
         <TabsTrigger v-for="tab in tabs" :key="tab.value" :value="tab.value" class="flex items-center justify-center gap-1 px-2">
           <component :is="tab.icon" class="h-3 w-3 sm:h-4 sm:w-4" />
           <span class="text-xs sm:text-sm truncate">{{ tab.label }}</span>
@@ -555,7 +555,7 @@
   import BattleReportDialog from '@/components/BattleReportDialog.vue'
   import SpyReportDialog from '@/components/SpyReportDialog.vue'
   import { formatDate } from '@/utils/format'
-  import { X, Sword, Eye, AlertTriangle, Package, Recycle, Gift, Ban, Check, Users, Skull, Globe } from 'lucide-vue-next'
+  import { X, Sword, Eye, AlertTriangle, Package, Recycle, Gift, Ban, Check, Users, Skull, Globe, Compass } from 'lucide-vue-next'
   import type {
     BattleResult,
     SpyReport,
@@ -837,6 +837,7 @@
       [MissionType.Transport]: t('fleetView.transport'),
       [MissionType.Colonize]: t('fleetView.colonize'),
       [MissionType.Deploy]: t('fleetView.deploy'),
+      [MissionType.Expedition]: t('fleetView.expedition'),
       [MissionType.Recycle]: t('fleetView.recycle'),
       [MissionType.Destroy]: t('fleetView.destroy'),
       [MissionType.MissileAttack]: t('galaxyView.missileAttack')
@@ -963,6 +964,8 @@
         return Recycle
       case MissionType.Colonize:
         return Globe
+      case MissionType.Expedition:
+        return Compass
       case MissionType.Destroy:
         return Skull
       default:

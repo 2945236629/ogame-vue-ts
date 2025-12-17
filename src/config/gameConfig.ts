@@ -444,12 +444,12 @@ export const TECHNOLOGIES: Record<TechnologyType, TechnologyConfig> = {
   [TechnologyType.ComputerTechnology]: {
     id: TechnologyType.ComputerTechnology,
     name: '计算机技术',
-    description: '增加研究队列数量，每级+1队列',
+    description: '增加研究队列和舰队任务槽位，每级+1队列+1槽位',
     baseCost: { metal: 0, crystal: 400, deuterium: 600, darkMatter: 0, energy: 0 },
     baseTime: 60,
     costMultiplier: 2,
     fleetStorageBonus: 500, // 每级全局增加500舰队仓储
-    maxLevel: 10, // 最多10级（最多11个研究队列）
+    maxLevel: 10, // 最多10级（最多11个研究队列和11个舰队槽位）
     requirements: { [BuildingType.ResearchLab]: 1 },
     levelRequirements: {
       3: { [BuildingType.ResearchLab]: 5 },
@@ -460,7 +460,7 @@ export const TECHNOLOGIES: Record<TechnologyType, TechnologyConfig> = {
   [TechnologyType.EspionageTechnology]: {
     id: TechnologyType.EspionageTechnology,
     name: '间谍技术',
-    description: '提高间谍探测效果，每级提高1级侦查深度',
+    description: '提高间谍探测效果，每级提高1级侦查深度。侦察等级=己方等级-对方等级+侦察船数/5。≥-1显示舰队，≥1显示防御，≥3显示建筑，≥5显示科技',
     baseCost: { metal: 200, crystal: 1000, deuterium: 200, darkMatter: 0, energy: 0 },
     baseTime: 60,
     costMultiplier: 2,
@@ -530,7 +530,7 @@ export const TECHNOLOGIES: Record<TechnologyType, TechnologyConfig> = {
     id: TechnologyType.GravitonTechnology,
     name: '引力技术',
     description: '研究引力操纵，死星的必要技术',
-    baseCost: { metal: 0, crystal: 0, deuterium: 0, darkMatter: 300000, energy: 0 },
+    baseCost: { metal: 0, crystal: 0, deuterium: 0, darkMatter: 100000, energy: 0 },
     baseTime: 0,
     costMultiplier: 3,
     maxLevel: 1, // 只有1级
@@ -872,7 +872,7 @@ export const SHIPS: Record<ShipType, ShipConfig> = {
     id: ShipType.Deathstar,
     name: '死星',
     description: '终极武器，能够摧毁整个行星',
-    cost: { metal: 5000000, crystal: 4000000, deuterium: 1000000, darkMatter: 50000, energy: 0 },
+    cost: { metal: 5000000, crystal: 4000000, deuterium: 1000000, darkMatter: 20000, energy: 0 },
     buildTime: 600,
     cargoCapacity: 1000000,
     attack: 200000,

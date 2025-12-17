@@ -65,8 +65,17 @@
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ alertDialogTitle }}</AlertDialogTitle>
-          <AlertDialogDescription class="whitespace-pre-line">
+          <AlertDialogDescription v-if="!alertDialogShowRequirements" class="whitespace-pre-line">
             {{ alertDialogMessage }}
+          </AlertDialogDescription>
+          <AlertDialogDescription v-else>
+            <div class="space-y-2">
+              <div v-for="(req, index) in alertDialogRequirements" :key="index" class="flex items-center gap-2 text-sm">
+                <Check v-if="req.met" :size="16" class="text-green-500 flex-shrink-0" />
+                <X v-else :size="16" class="text-red-500 flex-shrink-0" />
+                <span>{{ req.name }}: Lv {{ req.requiredLevel }} ({{ t('common.current') }}: Lv {{ req.currentLevel }})</span>
+              </div>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -99,6 +108,7 @@
     AlertDialogTitle
   } from '@/components/ui/alert-dialog'
   import CardUnlockOverlay from '@/components/CardUnlockOverlay.vue'
+  import { Check, X } from 'lucide-vue-next'
   import { formatNumber, getResourceCostColor } from '@/utils/format'
   import * as publicLogic from '@/logic/publicLogic'
   import * as researchLogic from '@/logic/researchLogic'
@@ -115,6 +125,8 @@
   const alertDialogOpen = ref(false)
   const alertDialogTitle = ref('')
   const alertDialogMessage = ref('')
+  const alertDialogRequirements = ref<Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }>>([])
+  const alertDialogShowRequirements = ref(false)
 
   // 资源类型配置（用于成本显示）
   const costResourceTypes = [
@@ -185,8 +197,10 @@
     return t('researchView.research') // "研究"
   }
 
-  // 获取前置条件列表文本
-  const getRequirementsList = (techType: TechnologyType): string => {
+  // 获取前置条件列表
+  const getRequirementsList = (
+    techType: TechnologyType
+  ): Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }> => {
     const config = TECHNOLOGIES.value[techType]
     const currentLevel = getTechLevel(techType)
     const targetLevel = currentLevel + 1
@@ -194,28 +208,59 @@
     // 获取目标等级的所有前置条件（包括等级门槛）
     const requirements = publicLogic.getLevelRequirements(config, targetLevel)
 
-    if (!requirements || !planet.value) return ''
+    if (!requirements || !planet.value) return []
 
-    const lines: string[] = []
+    const items: Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }> = []
     for (const [key, requiredLevel] of Object.entries(requirements)) {
       // 检查是否为建筑类型
       if (Object.values(BuildingType).includes(key as BuildingType)) {
         const bt = key as BuildingType
         const currentLevel = planet.value.buildings[bt] || 0
         const name = BUILDINGS.value[bt]?.name || bt
-        const status = currentLevel >= requiredLevel ? '✓' : '✗'
-        lines.push(`${status} ${name}: Lv ${requiredLevel} (${t('common.current')}: Lv ${currentLevel})`)
+        items.push({ name, requiredLevel, currentLevel, met: currentLevel >= requiredLevel })
       }
       // 检查是否为科技类型
       else if (Object.values(TechnologyType).includes(key as TechnologyType)) {
         const tt = key as TechnologyType
         const currentLevel = gameStore.player.technologies[tt] || 0
         const name = TECHNOLOGIES.value[tt]?.name || tt
-        const status = currentLevel >= requiredLevel ? '✓' : '✗'
-        lines.push(`${status} ${name}: Lv ${requiredLevel} (${t('common.current')}: Lv ${currentLevel})`)
+        items.push({ name, requiredLevel, currentLevel, met: currentLevel >= requiredLevel })
       }
     }
-    return lines.join('\n')
+    return items
+  }
+
+  // 获取前置条件显示（简化版，用于卡片内显示）
+  const getRequirementsDisplay = (techType: TechnologyType): Array<{ name: string; level: number; met: boolean }> => {
+    if (!planet.value) return []
+
+    const config = TECHNOLOGIES.value[techType]
+    const currentLevel = getTechLevel(techType)
+    const targetLevel = currentLevel + 1
+
+    // 获取目标等级的所有前置条件（包括等级门槛）
+    const requirements = publicLogic.getLevelRequirements(config, targetLevel)
+
+    if (!requirements || Object.keys(requirements).length === 0) return []
+
+    const items: Array<{ name: string; level: number; met: boolean }> = []
+    for (const [key, requiredLevel] of Object.entries(requirements)) {
+      // 检查是否为建筑类型
+      if (Object.values(BuildingType).includes(key as BuildingType)) {
+        const bt = key as BuildingType
+        const currentLevel = planet.value.buildings[bt] || 0
+        const name = BUILDINGS.value[bt]?.name || bt
+        items.push({ name, level: requiredLevel, met: currentLevel >= requiredLevel })
+      }
+      // 检查是否为科技类型
+      else if (Object.values(TechnologyType).includes(key as TechnologyType)) {
+        const tt = key as TechnologyType
+        const currentLevel = gameStore.player.technologies[tt] || 0
+        const name = TECHNOLOGIES.value[tt]?.name || tt
+        items.push({ name, level: requiredLevel, met: currentLevel >= requiredLevel })
+      }
+    }
+    return items
   }
 
   // 研究科技
@@ -223,7 +268,9 @@
     // 检查前置条件
     if (!checkUpgradeRequirements(techType)) {
       alertDialogTitle.value = t('common.requirementsNotMet')
-      alertDialogMessage.value = getRequirementsList(techType)
+      alertDialogRequirements.value = getRequirementsList(techType)
+      alertDialogShowRequirements.value = true
+      alertDialogMessage.value = ''
       alertDialogOpen.value = true
       return
     }
@@ -232,6 +279,7 @@
     if (!success) {
       alertDialogTitle.value = t('researchView.researchFailed')
       alertDialogMessage.value = t('researchView.researchFailedMessage')
+      alertDialogShowRequirements.value = false
       alertDialogOpen.value = true
     }
   }
@@ -250,6 +298,12 @@
 
     // 检查是否达到等级上限
     if (config.maxLevel !== undefined && currentLevel >= config.maxLevel) {
+      return false
+    }
+
+    // 检查队列中是否已存在该科技的研究任务
+    const existingQueueItem = player.value.researchQueue.find(item => item.type === 'technology' && item.itemType === techType)
+    if (existingQueueItem) {
       return false
     }
 

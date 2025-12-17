@@ -331,6 +331,7 @@
   } from '@/components/ui/alert-dialog'
   import { BuildingType, TechnologyType, ShipType, DefenseType, OfficerType } from '@/types/game'
   import * as npcBehaviorLogic from '@/logic/npcBehaviorLogic'
+  import * as publicLogic from '@/logic/publicLogic'
   import { Home } from 'lucide-vue-next'
 
   const router = useRouter()
@@ -339,6 +340,11 @@
   const universeStore = useUniverseStore()
   const { t } = useI18n()
   const { BUILDINGS, TECHNOLOGIES, SHIPS, DEFENSES, OFFICERS } = useGameConfig()
+
+  // 更新玩家积分的辅助函数
+  const updatePlayerPoints = () => {
+    gameStore.player.points = publicLogic.calculatePlayerPoints(gameStore.player)
+  }
 
   const goHome = () => {
     router.push('/')
@@ -407,22 +413,26 @@
   const setBuildingLevel = (building: BuildingType, level: number) => {
     if (selectedPlanet.value) {
       selectedPlanet.value.buildings[building] = level
+      updatePlayerPoints()
     }
   }
 
   const setTechnologyLevel = (tech: TechnologyType, level: number) => {
     gameStore.player.technologies[tech] = level
+    updatePlayerPoints()
   }
 
   const setShipCount = (ship: ShipType, count: number) => {
     if (selectedPlanet.value) {
       selectedPlanet.value.fleet[ship] = (selectedPlanet.value.fleet[ship] || 0) + count
+      updatePlayerPoints()
     }
   }
 
   const setDefenseCount = (defense: DefenseType, count: number) => {
     if (selectedPlanet.value) {
       selectedPlanet.value.defense[defense] = (selectedPlanet.value.defense[defense] || 0) + count
+      updatePlayerPoints()
     }
   }
 
@@ -614,7 +624,7 @@
   const maxAllResources = () => {
     if (!selectedPlanet.value) return
 
-    const maxAmount = 1000000000 // 10亿
+    const maxAmount = 1000000000000000000
     selectedPlanet.value.resources.metal = maxAmount
     selectedPlanet.value.resources.crystal = maxAmount
     selectedPlanet.value.resources.deuterium = maxAmount
@@ -707,6 +717,9 @@
         missileCount++
       }
     })
+
+    // 更新玩家积分（因为建筑/科技/舰队/防御可能已改变）
+    updatePlayerPoints()
 
     toast.success(
       t('gmView.completeQueuesSuccess', {

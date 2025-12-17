@@ -128,8 +128,17 @@
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ alertDialogTitle }}</AlertDialogTitle>
-          <AlertDialogDescription class="whitespace-pre-line">
+          <AlertDialogDescription v-if="!alertDialogShowRequirements" class="whitespace-pre-line">
             {{ alertDialogMessage }}
+          </AlertDialogDescription>
+          <AlertDialogDescription v-else>
+            <div class="space-y-2">
+              <div v-for="(req, index) in alertDialogRequirements" :key="index" class="flex items-center gap-2 text-sm">
+                <Check v-if="req.met" :size="16" class="text-green-500 flex-shrink-0" />
+                <X v-else :size="16" class="text-red-500 flex-shrink-0" />
+                <span>{{ req.name }}: Lv {{ req.requiredLevel }} ({{ t('common.current') }}: Lv {{ req.currentLevel }})</span>
+              </div>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -179,7 +188,7 @@
     AlertDialogHeader,
     AlertDialogTitle
   } from '@/components/ui/alert-dialog'
-  import { Clock, Grid3x3 } from 'lucide-vue-next'
+  import { Clock, Grid3x3, Check, X } from 'lucide-vue-next'
   import { formatNumber, formatTime, getResourceCostColor } from '@/utils/format'
   import * as buildingLogic from '@/logic/buildingLogic'
   import * as buildingValidation from '@/logic/buildingValidation'
@@ -196,6 +205,8 @@
   const alertDialogOpen = ref(false)
   const alertDialogTitle = ref('')
   const alertDialogMessage = ref('')
+  const alertDialogRequirements = ref<Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }>>([])
+  const alertDialogShowRequirements = ref(false)
 
   // 拆除确认对话框状态
   const demolishConfirmOpen = ref(false)
@@ -248,7 +259,9 @@
     // 检查前置条件
     if (!checkUpgradeRequirements(buildingType)) {
       alertDialogTitle.value = t('common.requirementsNotMet')
-      alertDialogMessage.value = getRequirementsList(buildingType)
+      alertDialogRequirements.value = getRequirementsList(buildingType)
+      alertDialogShowRequirements.value = true
+      alertDialogMessage.value = ''
       alertDialogOpen.value = true
       return
     }
@@ -257,6 +270,7 @@
     if (!result.success) {
       alertDialogTitle.value = t('buildingsView.upgradeFailed')
       alertDialogMessage.value = result.reason ? t(result.reason) : t('buildingsView.upgradeFailedMessage')
+      alertDialogShowRequirements.value = false
       alertDialogOpen.value = true
     }
   }
@@ -292,18 +306,23 @@
       return t('buildingsView.maxLevelReached') // "等级已满"
     }
 
-    if (planet.value.buildQueue.length > 0) return t('buildingsView.upgrade')
+    // 0级为建造，1级及以上为升级
+    const buttonTextKey = currentLevel === 0 ? 'buildingsView.build' : 'buildingsView.upgrade'
+
+    if (planet.value.buildQueue.length > 0) return t(buttonTextKey)
 
     // 检查前置条件
     if (!checkUpgradeRequirements(buildingType)) {
       return t('buildingsView.requirementsNotMet')
     }
 
-    return t('buildingsView.upgrade')
+    return t(buttonTextKey)
   }
 
-  // 获取前置条件列表文本
-  const getRequirementsList = (buildingType: BuildingType): string => {
+  // 获取前置条件列表
+  const getRequirementsList = (
+    buildingType: BuildingType
+  ): Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }> => {
     const config = BUILDINGS.value[buildingType]
     const currentLevel = getBuildingLevel(buildingType)
     const targetLevel = currentLevel + 1
@@ -311,28 +330,59 @@
     // 获取目标等级的所有前置条件（包括等级门槛）
     const requirements = publicLogic.getLevelRequirements(config, targetLevel)
 
-    if (!requirements || !planet.value) return ''
+    if (!requirements || !planet.value) return []
 
-    const lines: string[] = []
+    const items: Array<{ name: string; requiredLevel: number; currentLevel: number; met: boolean }> = []
     for (const [key, requiredLevel] of Object.entries(requirements)) {
       // 检查是否为建筑类型
       if (Object.values(BuildingType).includes(key as BuildingType)) {
         const bt = key as BuildingType
         const currentLevel = planet.value.buildings[bt] || 0
         const name = BUILDINGS.value[bt]?.name || bt
-        const status = currentLevel >= requiredLevel ? '✓' : '✗'
-        lines.push(`${status} ${name}: Lv ${requiredLevel} (${t('common.current')}: Lv ${currentLevel})`)
+        items.push({ name, requiredLevel, currentLevel, met: currentLevel >= requiredLevel })
       }
       // 检查是否为科技类型
       else if (Object.values(TechnologyType).includes(key as TechnologyType)) {
         const tt = key as TechnologyType
         const currentLevel = gameStore.player.technologies[tt] || 0
         const name = TECHNOLOGIES.value[tt]?.name || tt
-        const status = currentLevel >= requiredLevel ? '✓' : '✗'
-        lines.push(`${status} ${name}: Lv ${requiredLevel} (${t('common.current')}: Lv ${currentLevel})`)
+        items.push({ name, requiredLevel, currentLevel, met: currentLevel >= requiredLevel })
       }
     }
-    return lines.join('\n')
+    return items
+  }
+
+  // 获取前置条件显示（简化版，用于卡片内显示）
+  const getRequirementsDisplay = (buildingType: BuildingType): Array<{ name: string; level: number; met: boolean }> => {
+    if (!planet.value) return []
+
+    const config = BUILDINGS.value[buildingType]
+    const currentLevel = getBuildingLevel(buildingType)
+    const targetLevel = currentLevel + 1
+
+    // 获取目标等级的所有前置条件（包括等级门槛）
+    const requirements = publicLogic.getLevelRequirements(config, targetLevel)
+
+    if (!requirements || Object.keys(requirements).length === 0) return []
+
+    const items: Array<{ name: string; level: number; met: boolean }> = []
+    for (const [key, requiredLevel] of Object.entries(requirements)) {
+      // 检查是否为建筑类型
+      if (Object.values(BuildingType).includes(key as BuildingType)) {
+        const bt = key as BuildingType
+        const currentLevel = planet.value.buildings[bt] || 0
+        const name = BUILDINGS.value[bt]?.name || bt
+        items.push({ name, level: requiredLevel, met: currentLevel >= requiredLevel })
+      }
+      // 检查是否为科技类型
+      else if (Object.values(TechnologyType).includes(key as TechnologyType)) {
+        const tt = key as TechnologyType
+        const currentLevel = gameStore.player.technologies[tt] || 0
+        const name = TECHNOLOGIES.value[tt]?.name || tt
+        items.push({ name, level: requiredLevel, met: currentLevel >= requiredLevel })
+      }
+    }
+    return items
   }
 
   // 检查是否可以升级

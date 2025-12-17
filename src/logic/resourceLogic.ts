@@ -76,7 +76,7 @@ export const calculateResourceProduction = (
     metal: metalMineLevel * 1500 * Math.pow(1.5, metalMineLevel) * resourceBonus * productionEfficiency,
     crystal: crystalMineLevel * 1000 * Math.pow(1.5, crystalMineLevel) * resourceBonus * productionEfficiency,
     deuterium: deuteriumSynthesizerLevel * 500 * Math.pow(1.5, deuteriumSynthesizerLevel) * resourceBonus * productionEfficiency,
-    darkMatter: darkMatterCollectorLevel * 25 * Math.pow(1.5, darkMatterCollectorLevel) * darkMatterBonus,
+    darkMatter: darkMatterCollectorLevel * 100 * Math.pow(1.5, darkMatterCollectorLevel) * darkMatterBonus,
     energy: energyProduction
   }
 }

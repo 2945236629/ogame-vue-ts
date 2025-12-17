@@ -2,7 +2,7 @@ import type { NPC, Planet, Player, FleetMission, SpyReport, SpiedNotification, I
 import { MissionType, ShipType, TechnologyType, RelationStatus } from '@/types/game'
 import * as fleetLogic from './fleetLogic'
 import * as diplomaticLogic from './diplomaticLogic'
-import { DIPLOMATIC_CONFIG } from '@/config/gameConfig'
+import { DIPLOMATIC_CONFIG, SHIPS } from '@/config/gameConfig'
 
 /**
  * NPC行为决策系统
@@ -31,47 +31,47 @@ export interface DynamicBehaviorConfig {
  */
 export const calculateDynamicBehavior = (playerPoints: number): DynamicBehaviorConfig => {
   if (playerPoints < 1000) {
-    // 新手阶段：NPC很温和
+    // 新手阶段：NPC温和但会主动侦查攻击
     return {
-      spyInterval: 2400, // 40分钟侦查一次
-      attackInterval: 4800, // 80分钟攻击一次
-      attackProbability: 0.15, // 15%概率攻击
+      spyInterval: 300, // 5分钟侦查一次（让新玩家快速体验游戏内容）
+      attackInterval: 600, // 10分钟攻击一次
+      attackProbability: 0.4, // 40%概率攻击
       minSpyProbes: 1,
       attackFleetSizeRatio: 0.3 // 只派30%舰队
     }
   } else if (playerPoints < 5000) {
-    // 初级阶段：NPC稍微激进
+    // 初级阶段：NPC比较激进
     return {
-      spyInterval: 1800, // 30分钟侦查一次
-      attackInterval: 3600, // 60分钟攻击一次
-      attackProbability: 0.25, // 25%概率攻击
+      spyInterval: 420, // 7分钟侦查一次
+      attackInterval: 900, // 15分钟攻击一次
+      attackProbability: 0.45, // 45%概率攻击
       minSpyProbes: 2,
       attackFleetSizeRatio: 0.5 // 派50%舰队
     }
   } else if (playerPoints < 20000) {
-    // 中级阶段：NPC比较激进
+    // 中级阶段：NPC很激进
     return {
-      spyInterval: 1200, // 20分钟侦查一次
-      attackInterval: 2400, // 40分钟攻击一次
-      attackProbability: 0.4, // 40%概率攻击
+      spyInterval: 360, // 6分钟侦查一次
+      attackInterval: 720, // 12分钟攻击一次
+      attackProbability: 0.55, // 55%概率攻击
       minSpyProbes: 3,
       attackFleetSizeRatio: 0.7 // 派70%舰队
     }
   } else if (playerPoints < 50000) {
-    // 高级阶段：NPC很激进
+    // 高级阶段：NPC非常激进
     return {
-      spyInterval: 900, // 15分钟侦查一次
-      attackInterval: 1800, // 30分钟攻击一次
-      attackProbability: 0.55, // 55%概率攻击
+      spyInterval: 300, // 5分钟侦查一次
+      attackInterval: 600, // 10分钟攻击一次
+      attackProbability: 0.65, // 65%概率攻击
       minSpyProbes: 4,
       attackFleetSizeRatio: 0.85 // 派85%舰队
     }
   } else {
-    // 专家阶段：NPC非常激进
+    // 专家阶段：NPC极度激进
     return {
-      spyInterval: 600, // 10分钟侦查一次
-      attackInterval: 1200, // 20分钟攻击一次
-      attackProbability: 0.7, // 70%概率攻击
+      spyInterval: 240, // 4分钟侦查一次
+      attackInterval: 480, // 8分钟攻击一次
+      attackProbability: 0.8, // 80%概率攻击
       minSpyProbes: 5,
       attackFleetSizeRatio: 0.95 // 派95%舰队
     }
@@ -89,12 +89,12 @@ export const shouldNPCSpyPlayer = (npc: NPC, player: Player, currentTime: number
     return false
   }
 
-  // 检查外交关系 - 根据关系状态调整侦查概率
+  // 检查外交关系 - 只有中立和敌对NPC才会侦查
   const relation = npc.relations?.[player.id]
   if (relation) {
     if (relation.status === RelationStatus.Friendly) {
-      // 友好NPC侦查频率降低到50%
-      return Math.random() < 0.5
+      // 友好NPC不侦查玩家
+      return false
     }
     if (relation.status === RelationStatus.Hostile) {
       // 敌对NPC必定侦查
@@ -102,6 +102,7 @@ export const shouldNPCSpyPlayer = (npc: NPC, player: Player, currentTime: number
     }
   }
 
+  // 中立或无关系：正常侦查
   return true
 }
 
@@ -116,7 +117,7 @@ export const shouldNPCAttackPlayer = (npc: NPC, player: Player, currentTime: num
     return false
   }
 
-  // 检查外交关系
+  // 检查外交关系 - 只有中立和敌对NPC才会攻击
   const relation = npc.relations?.[player.id]
   if (relation) {
     if (relation.status === RelationStatus.Friendly) {
@@ -125,11 +126,11 @@ export const shouldNPCAttackPlayer = (npc: NPC, player: Player, currentTime: num
     }
     if (relation.status === RelationStatus.Hostile) {
       // 敌对NPC攻击概率翻倍
-      return Math.random() < config.attackProbability * 2.0
+      return Math.random() < Math.min(config.attackProbability * 2.0, 1.0)
     }
   }
 
-  // 中立或无关系：正常概率
+  // 中立或无关系：正常概率攻击
   return Math.random() < config.attackProbability
 }
 
@@ -1058,4 +1059,137 @@ export const createNPCRevengeMission = (npc: NPC, allPlanets: Planet[], config: 
   npc.revengeTarget = undefined
 
   return mission
+}
+
+/**
+ * NPC状态诊断函数 - 用于调试和了解NPC当前状态
+ */
+export interface NPCDiagnosticInfo {
+  npcId: string
+  npcName: string
+  difficulty: string
+  relationStatus: string
+  reputation: number
+  canSpy: boolean
+  canAttack: boolean
+  spyProbes: number
+  totalFleetPower: number
+  lastSpyTime: number
+  lastAttackTime: number
+  timeSinceLastSpy: number
+  timeSinceLastAttack: number
+  nextSpyIn: number
+  nextAttackIn: number
+  attackProbability: number
+  reasons: string[]
+}
+
+export const diagnoseNPCBehavior = (
+  npcs: NPC[],
+  player: Player,
+  currentTime: number
+): NPCDiagnosticInfo[] => {
+  const playerPoints = player.points || 0
+  const config = calculateDynamicBehavior(playerPoints)
+
+  return npcs.map(npc => {
+    const planet = npc.planets[0]
+    const relation = npc.relations?.[player.id]
+    const reasons: string[] = []
+
+    // 检查外交关系
+    let canSpy = true
+    let canAttack = true
+    let relationStatus = '无关系'
+    let reputation = 0
+
+    if (relation) {
+      relationStatus = relation.status === RelationStatus.Friendly ? '友好' :
+                      relation.status === RelationStatus.Hostile ? '敌对' : '中立'
+      reputation = relation.reputation || 0
+
+      if (relation.status === RelationStatus.Friendly) {
+        canSpy = false
+        canAttack = false
+        reasons.push('友好NPC不会侦查或攻击玩家')
+      } else if (relation.status === RelationStatus.Hostile) {
+        reasons.push('敌对NPC攻击概率翻倍')
+      }
+    }
+
+    // 检查侦查探测器数量
+    const spyProbes = planet?.fleet?.[ShipType.EspionageProbe] || 0
+    if (spyProbes < config.minSpyProbes) {
+      canSpy = false
+      reasons.push(`侦查探测器不足 (${spyProbes}/${config.minSpyProbes})`)
+    }
+
+    // 计算舰队战力
+    let totalFleetPower = 0
+    if (planet?.fleet) {
+      Object.entries(planet.fleet).forEach(([shipType, count]) => {
+        const shipConfig = SHIPS[shipType as ShipType]
+        if (shipConfig) {
+          const power = shipConfig.attack + shipConfig.shield + shipConfig.armor / 10
+          totalFleetPower += power * (count as number)
+        }
+      })
+    }
+
+    if (totalFleetPower === 0) {
+      canAttack = false
+      reasons.push('没有战斗舰队')
+    }
+
+    // 时间检查
+    const lastSpyTime = npc.lastSpyTime || 0
+    const lastAttackTime = npc.lastAttackTime || 0
+    const timeSinceLastSpy = Math.floor((currentTime - lastSpyTime) / 1000)
+    const timeSinceLastAttack = Math.floor((currentTime - lastAttackTime) / 1000)
+
+    const nextSpyIn = Math.max(0, config.spyInterval - timeSinceLastSpy)
+    const nextAttackIn = Math.max(0, config.attackInterval - timeSinceLastAttack)
+
+    if (timeSinceLastSpy < config.spyInterval) {
+      reasons.push(`侦查冷却中 (${Math.floor(nextSpyIn / 60)}分${nextSpyIn % 60}秒)`)
+    }
+
+    if (timeSinceLastAttack < config.attackInterval) {
+      reasons.push(`攻击冷却中 (${Math.floor(nextAttackIn / 60)}分${nextAttackIn % 60}秒)`)
+    }
+
+    // 检查是否已经侦查过玩家
+    const hasSpiedPlayer = npc.playerSpyReports && Object.keys(npc.playerSpyReports).length > 0
+
+    if (!hasSpiedPlayer && canAttack) {
+      canAttack = false
+      reasons.push('尚未侦查过玩家，无法攻击')
+    }
+
+    // 计算实际攻击概率
+    let actualAttackProbability = config.attackProbability
+    if (relation?.status === RelationStatus.Hostile) {
+      actualAttackProbability = Math.min(config.attackProbability * 2.0, 1.0)
+    }
+
+    return {
+      npcId: npc.id,
+      npcName: npc.name,
+      difficulty: npc.difficulty,
+      relationStatus,
+      reputation,
+      canSpy,
+      canAttack,
+      spyProbes,
+      totalFleetPower: Math.floor(totalFleetPower),
+      lastSpyTime,
+      lastAttackTime,
+      timeSinceLastSpy,
+      timeSinceLastAttack,
+      nextSpyIn,
+      nextAttackIn,
+      attackProbability: actualAttackProbability,
+      reasons
+    }
+  })
 }

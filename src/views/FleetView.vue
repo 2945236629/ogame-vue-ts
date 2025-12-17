@@ -156,7 +156,7 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div class="space-y-2">
                 <Label for="cargo-metal" class="text-xs sm:text-sm flex items-center gap-2">
                   <ResourceIcon type="metal" size="sm" />
@@ -189,6 +189,20 @@
                   type="number"
                   min="0"
                   :max="planet.resources.deuterium"
+                  placeholder="0"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label for="cargo-darkMatter" class="text-xs sm:text-sm flex items-center gap-2">
+                  <ResourceIcon type="darkMatter" size="sm" />
+                  {{ t('resources.darkMatter') }} ({{ t('fleetView.available') }}: {{ formatNumber(planet.resources.darkMatter) }})
+                </Label>
+                <Input
+                  id="cargo-darkMatter"
+                  v-model.number="cargo.darkMatter"
+                  type="number"
+                  min="0"
+                  :max="planet.resources.darkMatter"
                   placeholder="0"
                 />
               </div>
@@ -344,7 +358,7 @@
   import { useGameConfig } from '@/composables/useGameConfig'
   import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import { ShipType, MissionType, BuildingType } from '@/types/game'
+  import { ShipType, MissionType, BuildingType, TechnologyType } from '@/types/game'
   import type { Fleet, Resources } from '@/types/game'
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -366,7 +380,7 @@
     AlertDialogTitle
   } from '@/components/ui/alert-dialog'
   import UnlockRequirement from '@/components/UnlockRequirement.vue'
-  import { Sword, Package, Rocket as RocketIcon, Eye, Users, Recycle, Skull, Gift } from 'lucide-vue-next'
+  import { Sword, Package, Rocket as RocketIcon, Eye, Users, Recycle, Skull, Gift, Compass } from 'lucide-vue-next'
   import { formatNumber, formatTime } from '@/utils/format'
   import * as shipValidation from '@/logic/shipValidation'
   import * as fleetLogic from '@/logic/fleetLogic'
@@ -397,7 +411,8 @@
   // 计算最大舰队任务槽位
   const maxFleetMissions = computed(() => {
     const bonuses = officerLogic.calculateActiveBonuses(gameStore.player.officers, Date.now())
-    return publicLogic.getMaxFleetMissions(bonuses.additionalFleetSlots)
+    const computerTechLevel = gameStore.player.technologies[TechnologyType.ComputerTechnology] || 0
+    return publicLogic.getMaxFleetMissions(bonuses.additionalFleetSlots, computerTechLevel)
   })
 
   const activeTab = ref<'fleet' | 'send' | 'missions'>('fleet')
@@ -504,6 +519,7 @@
     { type: MissionType.Colonize, name: t('fleetView.colonize'), icon: RocketIcon },
     { type: MissionType.Spy, name: t('fleetView.spy'), icon: Eye },
     { type: MissionType.Deploy, name: t('fleetView.deploy'), icon: Users },
+    { type: MissionType.Expedition, name: t('fleetView.expedition'), icon: Compass },
     { type: MissionType.Recycle, name: t('fleetView.recycle'), icon: Recycle },
     { type: MissionType.Destroy, name: t('fleetView.destroy'), icon: Skull }
   ])
@@ -616,7 +632,8 @@
       fleet,
       cargo,
       gameStore.player.officers,
-      currentMissions
+      currentMissions,
+      gameStore.player.technologies
     )
     if (!validation.valid) return false
     const shouldDeductCargo = missionType === MissionType.Transport

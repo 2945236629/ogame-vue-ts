@@ -200,49 +200,49 @@
                 <SidebarTrigger class="lg:hidden" data-tutorial="mobile-menu" />
               </div>
 
-	              <!-- 资源显示 - PC端居中，移动端可折叠 -->
-	              <!-- 关键：min-w-0 + overflow-hidden，避免横向滚动内容溢出覆盖左侧菜单按钮 -->
-	              <div class="min-w-0 overflow-hidden">
-	                <div
-	                  class="resource-bar flex items-center gap-3 sm:gap-6 justify-start sm:justify-center"
-	                  :class="resourceBarExpanded ? 'hidden' : 'overflow-x-auto'"
-	                >
-	                  <div
-	                    v-for="resourceType in resourceTypes"
-	                    :key="resourceType.key"
-	                    class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0"
-	                  >
-	                    <ResourceIcon :type="resourceType.key" size="md" />
-	                    <div class="min-w-0">
-	                      <!-- 电力显示净产量和效率 -->
-	                      <template v-if="resourceType.key === 'energy'">
-	                        <p
-	                          class="text-xs sm:text-sm font-medium truncate"
-	                          :class="netEnergy >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
-	                        >
-	                          {{ netEnergy >= 0 ? '+' : '' }}{{ formatNumber(netEnergy) }}
-	                        </p>
-	                        <p class="text-[10px] sm:text-xs text-muted-foreground truncate">
-	                          {{ formatNumber(production?.energy || 0) }} / {{ formatNumber(energyConsumption) }}
-	                        </p>
-	                      </template>
-	                      <!-- 其他资源统一显示：当前值/容量 -->
-	                      <template v-else>
-	                        <p
-	                          class="text-xs sm:text-sm font-medium truncate"
-	                          :class="getResourceColor(planet.resources[resourceType.key], capacity?.[resourceType.key] || Infinity)"
-	                        >
-	                          {{ formatNumber(planet.resources[resourceType.key]) }} /
-	                          {{ formatNumber(capacity?.[resourceType.key] || 0) }}
-	                        </p>
-	                        <p class="text-[10px] sm:text-xs text-muted-foreground truncate">
-	                          +{{ formatNumber(Math.round((production?.[resourceType.key] || 0) / 60)) }}/{{ t('resources.perMinute') }}
-	                        </p>
-	                      </template>
-	                    </div>
-	                  </div>
-	                </div>
-	              </div>
+              <!-- 资源显示 - PC端居中，移动端可折叠 -->
+              <!-- 关键：min-w-0 + overflow-hidden，避免横向滚动内容溢出覆盖左侧菜单按钮 -->
+              <div class="min-w-0 overflow-hidden">
+                <div
+                  class="resource-bar flex items-center gap-3 sm:gap-6 justify-start sm:justify-center"
+                  :class="resourceBarExpanded ? 'hidden' : 'overflow-x-auto'"
+                >
+                  <div
+                    v-for="resourceType in resourceTypes"
+                    :key="resourceType.key"
+                    class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0"
+                  >
+                    <ResourceIcon :type="resourceType.key" size="md" />
+                    <div class="min-w-0">
+                      <!-- 电力显示净产量和效率 -->
+                      <template v-if="resourceType.key === 'energy'">
+                        <p
+                          class="text-xs sm:text-sm font-medium truncate"
+                          :class="netEnergy >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                        >
+                          {{ netEnergy >= 0 ? '+' : '' }}{{ formatNumber(netEnergy) }}
+                        </p>
+                        <p class="text-[10px] sm:text-xs text-muted-foreground truncate">
+                          {{ formatNumber(production?.energy || 0) }} / {{ formatNumber(energyConsumption) }}
+                        </p>
+                      </template>
+                      <!-- 其他资源统一显示：当前值/容量 -->
+                      <template v-else>
+                        <p
+                          class="text-xs sm:text-sm font-medium truncate"
+                          :class="getResourceColor(planet.resources[resourceType.key], capacity?.[resourceType.key] || Infinity)"
+                        >
+                          {{ formatNumber(planet.resources[resourceType.key]) }} /
+                          {{ formatNumber(capacity?.[resourceType.key] || 0) }}
+                        </p>
+                        <p class="text-[10px] sm:text-xs text-muted-foreground truncate">
+                          +{{ formatNumber(Math.round((production?.[resourceType.key] || 0) / 60)) }}/{{ t('resources.perMinute') }}
+                        </p>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <!-- 右侧：展开按钮（仅移动端） + 状态 -->
               <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0 justify-end">
@@ -329,13 +329,7 @@
         <main class="flex-1 overflow-y-auto">
           <Transition name="page" mode="out-in">
             <div :key="$route.fullPath" class="h-full">
-              <StarsBackground
-                  v-if="isDark"
-                  :factor="0.05"
-                  :speed="50"
-                  star-color="#fff"
-                  class="h-full"
-              >
+              <StarsBackground v-if="isDark" :factor="0.05" :speed="50" star-color="#fff" class="h-full">
                 <div class="relative z-10 h-full">
                   <RouterView />
                 </div>
@@ -346,16 +340,8 @@
                   <RouterView />
                 </div>
 
-                <ParticlesBg
-                    class="absolute inset-0 z-0"
-                    :quantity="100"
-                    :ease="100"
-                    color="#000"
-                    :staticity="10"
-                    refresh
-                />
+                <ParticlesBg class="absolute inset-0 z-0" :quantity="100" :ease="100" color="#000" :staticity="10" refresh />
               </div>
-
             </div>
           </Transition>
         </main>
@@ -477,12 +463,13 @@
   import * as npcGrowthLogic from '@/logic/npcGrowthLogic'
   import * as npcBehaviorLogic from '@/logic/npcBehaviorLogic'
   import * as diplomaticLogic from '@/logic/diplomaticLogic'
+  import * as publicLogic from '@/logic/publicLogic'
   import pkg from '../package.json'
   import { toast } from 'vue-sonner'
   import { migrateGameData } from '@/utils/migration'
   import { checkLatestVersion } from '@/utils/versionCheck'
-  import {StarsBackground} from "@/components/ui/bg-stars";
-  import {ParticlesBg} from "@/components/ui/particles-bg";
+  import { StarsBackground } from '@/components/ui/bg-stars'
+  import { ParticlesBg } from '@/components/ui/particles-bg'
 
   // 执行数据迁移（在 store 初始化之前）
   migrateGameData()
@@ -539,6 +526,10 @@
       if (Object.keys(universeStore.planets).length === 0) {
         generateNPCPlanets()
       }
+
+      // 初始化或更新玩家积分
+      gameStore.player.points = publicLogic.calculatePlayerPoints(gameStore.player)
+
       return
     }
     gameStore.player = gameLogic.initializePlayer(gameStore.player.id, t('common.playerName'))
@@ -547,6 +538,8 @@
     gameStore.currentPlanetId = initialPlanet.id
     // 新玩家初始化时生成NPC星球
     generateNPCPlanets()
+    // 初始化玩家积分
+    gameStore.player.points = publicLogic.calculatePlayerPoints(gameStore.player)
   }
 
   const generateNPCPlanets = () => {
@@ -562,8 +555,8 @@
 
   const updateGame = async () => {
     const now = Date.now()
-    gameStore.gameTime = now
     if (gameStore.isPaused) return
+    gameStore.gameTime = now
     // 检查军官过期
     gameLogic.checkOfficersExpiration(gameStore.player.officers, now)
     // 处理游戏更新（建造队列、研究队列等）
@@ -1045,11 +1038,7 @@
         if (!gameStore.player.diplomaticRelations) {
           gameStore.player.diplomaticRelations = {}
         }
-        const relation = diplomaticLogic.getOrCreateRelation(
-          gameStore.player.diplomaticRelations,
-          gameStore.player.id,
-          targetNpc.id
-        )
+        const relation = diplomaticLogic.getOrCreateRelation(gameStore.player.diplomaticRelations, gameStore.player.id, targetNpc.id)
         gameStore.player.diplomaticRelations[targetNpc.id] = diplomaticLogic.updateReputation(
           relation,
           reputationLoss,
@@ -1123,7 +1112,7 @@
 
   // NPC成长系统更新函数
   let npcUpdateCounter = 0 // 累计秒数
-  const NPC_UPDATE_INTERVAL = 1 // 每1秒更新一次NPC，确保发育速度与玩家相当
+  const NPC_UPDATE_INTERVAL = 5 // 每1秒更新一次NPC，确保发育速度与玩家相当
 
   const updateNPCGrowth = (deltaSeconds: number) => {
     // 累积时间
@@ -1155,7 +1144,11 @@
             difficulty: 'medium' as const, // 默认中等难度
             relations: {}, // 外交关系
             allies: [], // 盟友列表
-            enemies: [] // 敌人列表
+            enemies: [], // 敌人列表
+            lastSpyTime: 0, // 上次侦查时间
+            lastAttackTime: 0, // 上次攻击时间
+            fleetMissions: [], // 舰队任务
+            playerSpyReports: {} // 对玩家的侦查报告
           })
         }
 
@@ -1182,6 +1175,11 @@
         // 初始化NPC之间的外交关系（盟友/敌人）
         npcGrowthLogic.initializeNPCDiplomacy(npcStore.npcs)
       }
+    }
+
+    // 确保所有NPC都有间谍探测器（修复旧版本保存的数据）
+    if (npcStore.npcs.length > 0) {
+      npcGrowthLogic.ensureNPCSpyProbes(npcStore.npcs)
     }
 
     // 如果没有NPC，直接返回
@@ -1238,6 +1236,7 @@
 
   // 游戏循环定时器
   let gameLoop: ReturnType<typeof setInterval> | null = null
+  let pointsUpdateInterval: ReturnType<typeof setInterval> | null = null
   let konamiCleanup: (() => void) | null = null
   let versionCheckInterval: ReturnType<typeof setInterval> | null = null
 
@@ -1253,6 +1252,18 @@
     gameLoop = setInterval(() => {
       updateGame()
     }, interval)
+  }
+
+  // 启动积分更新定时器（每10秒更新一次）
+  const startPointsUpdate = () => {
+    if (pointsUpdateInterval) {
+      clearInterval(pointsUpdateInterval)
+    }
+    pointsUpdateInterval = setInterval(() => {
+      if (!gameStore.isPaused) {
+        gameStore.player.points = publicLogic.calculatePlayerPoints(gameStore.player)
+      }
+    }, 10000) // 10秒更新一次
   }
 
   // 监听游戏速度变化，重新启动游戏循环
@@ -1275,6 +1286,8 @@
     await initGame()
     // 启动游戏循环
     startGameLoop()
+    // 启动积分更新定时器
+    startPointsUpdate()
     // 启动科乐美秘籍监听
     konamiCleanup = setupKonamiCode()
 
@@ -1326,6 +1339,7 @@
   // 清理定时器
   onUnmounted(() => {
     if (gameLoop) clearInterval(gameLoop)
+    if (pointsUpdateInterval) clearInterval(pointsUpdateInterval)
     if (konamiCleanup) konamiCleanup()
     if (versionCheckInterval) clearInterval(versionCheckInterval)
     // 移除队列取消事件监听

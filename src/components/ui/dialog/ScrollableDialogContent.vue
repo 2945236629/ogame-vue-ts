@@ -17,7 +17,7 @@
       </div>
 
       <!-- 可滚动的内容区域 -->
-      <div class="overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+      <div class="overflow-y-auto px-4 py-3 sm:px-6 sm:py-4 max-h-[60vh]">
         <slot />
       </div>
 

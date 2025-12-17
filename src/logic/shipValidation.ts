@@ -149,7 +149,8 @@ export const validateFleetDispatch = (
   fleet: Partial<Fleet>,
   cargo: Resources,
   officers: Record<OfficerType, Officer>,
-  currentFleetMissions: number = 0
+  currentFleetMissions: number = 0,
+  technologies: Partial<Record<TechnologyType, number>> = {}
 ): {
   valid: boolean
   reason?: string
@@ -159,7 +160,8 @@ export const validateFleetDispatch = (
   const bonuses = officerLogic.calculateActiveBonuses(officers, Date.now())
 
   // 检查舰队任务槽位是否已满
-  const maxFleetMissions = publicLogic.getMaxFleetMissions(bonuses.additionalFleetSlots)
+  const computerTechLevel = technologies[TechnologyType.ComputerTechnology] || 0
+  const maxFleetMissions = publicLogic.getMaxFleetMissions(bonuses.additionalFleetSlots, computerTechLevel)
   if (currentFleetMissions >= maxFleetMissions) {
     return { valid: false, reason: 'errors.fleetMissionsFull' }
   }

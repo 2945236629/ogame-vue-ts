@@ -5,7 +5,106 @@
         <h1 class="text-2xl sm:text-3xl font-bold">{{ t('diplomacy.title') }}</h1>
         <p class="text-sm text-muted-foreground mt-1">{{ t('diplomacy.description') }}</p>
       </div>
+      <!-- NPC诊断按钮 -->
+      <Button @click="showNPCDiagnostic" variant="outline" size="sm">
+        <Search class="mr-2 h-4 w-4" />
+        NPC状态诊断
+      </Button>
     </div>
+
+    <!-- NPC诊断对话框 -->
+    <Dialog v-model:open="npcDiagnosticOpen">
+      <ScrollableDialogContent container-class="max-w-4xl">
+        <template #header>
+          <DialogTitle>NPC状态诊断报告</DialogTitle>
+          <DialogDescription>
+            <div class="text-sm mt-2">
+              玩家积分: {{ gameStore.player.points || 0 }} | 侦查间隔: {{ Math.floor(behaviorConfig.spyInterval / 60) }}分钟 | 攻击间隔:
+              {{ Math.floor(behaviorConfig.attackInterval / 60) }}分钟 | 攻击概率:
+              {{ (behaviorConfig.attackProbability * 100).toFixed(0) }}%
+            </div>
+          </DialogDescription>
+        </template>
+
+        <div v-if="npcDiagnostics.length === 0" class="text-center py-8 text-muted-foreground">暂无NPC数据</div>
+        <div v-else class="space-y-4">
+          <div v-for="diagnostic in npcDiagnostics" :key="diagnostic.npcId" class="border rounded-lg p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-lg">{{ diagnostic.npcName }}</h3>
+              <Badge
+                :variant="
+                  diagnostic.relationStatus === '友好' ? 'default' : diagnostic.relationStatus === '敌对' ? 'destructive' : 'secondary'
+                "
+              >
+                {{ diagnostic.relationStatus }}
+              </Badge>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">难度:</span>
+                <span class="font-medium">{{ diagnostic.difficulty }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">好感度:</span>
+                <span class="font-medium">{{ diagnostic.reputation }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">侦查探测器:</span>
+                <span class="font-medium">{{ diagnostic.spyProbes }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">舰队战力:</span>
+                <span class="font-medium">{{ diagnostic.totalFleetPower }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">可以侦查:</span>
+                <span :class="diagnostic.canSpy ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                  {{ diagnostic.canSpy ? '是' : '否' }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">可以攻击:</span>
+                <span :class="diagnostic.canAttack ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                  {{ diagnostic.canAttack ? '是' : '否' }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">攻击概率:</span>
+                <span class="font-medium">{{ (diagnostic.attackProbability * 100).toFixed(0) }}%</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-muted-foreground">下次侦查:</span>
+                <span class="font-medium">
+                  <template v-if="diagnostic.nextSpyIn > 0">
+                    {{ Math.floor(diagnostic.nextSpyIn / 60) }}分{{ diagnostic.nextSpyIn % 60 }}秒
+                  </template>
+                  <template v-else>
+                    <span class="text-green-600">随时</span>
+                  </template>
+                </span>
+              </div>
+              <div class="col-span-2 flex items-center gap-2">
+                <span class="text-muted-foreground">下次攻击:</span>
+                <span class="font-medium">
+                  <template v-if="diagnostic.nextAttackIn > 0">
+                    {{ Math.floor(diagnostic.nextAttackIn / 60) }}分{{ diagnostic.nextAttackIn % 60 }}秒
+                  </template>
+                  <template v-else>
+                    <span class="text-green-600">随时</span>
+                  </template>
+                </span>
+              </div>
+            </div>
+            <div v-if="diagnostic.reasons.length > 0" class="mt-3 p-3 bg-muted rounded text-xs">
+              <div class="font-semibold mb-2">状态说明:</div>
+              <ul class="list-disc list-inside space-y-1">
+                <li v-for="(reason, idx) in diagnostic.reasons" :key="idx">{{ reason }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </ScrollableDialogContent>
+    </Dialog>
 
     <!-- 关系状态过滤标签 -->
     <Tabs v-model="activeTab" class="w-full">
@@ -218,16 +317,34 @@
   import { useI18n } from '@/composables/useI18n'
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
   import { Badge } from '@/components/ui/badge'
+  import { Button } from '@/components/ui/button'
+  import { Dialog, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+  import ScrollableDialogContent from '@/components/ui/dialog/ScrollableDialogContent.vue'
   import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
   import NpcRelationCard from '@/components/NpcRelationCard.vue'
   import { RelationStatus } from '@/types/game'
   import type { DiplomaticRelation } from '@/types/game'
+  import * as npcBehaviorLogic from '@/logic/npcBehaviorLogic'
+  import { Search } from 'lucide-vue-next'
 
   const gameStore = useGameStore()
   const npcStore = useNPCStore()
   const { t } = useI18n()
 
   const activeTab = ref('all')
+
+  // NPC诊断功能
+  const npcDiagnosticOpen = ref(false)
+  const npcDiagnostics = ref<npcBehaviorLogic.NPCDiagnosticInfo[]>([])
+  const behaviorConfig = computed(() => {
+    return npcBehaviorLogic.calculateDynamicBehavior(gameStore.player.points || 0)
+  })
+
+  const showNPCDiagnostic = () => {
+    const currentTime = Date.now()
+    npcDiagnostics.value = npcBehaviorLogic.diagnoseNPCBehavior(npcStore.npcs, gameStore.player, currentTime)
+    npcDiagnosticOpen.value = true
+  }
 
   // 检测并生成NPC盟友
   const initializeNPCAllies = () => {

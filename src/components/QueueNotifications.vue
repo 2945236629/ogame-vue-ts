@@ -16,7 +16,7 @@
       <div class="flex items-center justify-between p-4 border-b">
         <h3 class="font-semibold">{{ t('queue.title') }}</h3>
       </div>
-      <ScrollArea class="max-h-96">
+      <ScrollArea class="h-[480px]">
         <div v-if="totalQueueCount === 0" class="p-8 text-center text-muted-foreground">
           {{ t('queue.empty') }}
         </div>

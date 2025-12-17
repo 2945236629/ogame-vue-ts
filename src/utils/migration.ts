@@ -1,4 +1,4 @@
-import type { Planet, DebrisField } from '@/types/game'
+import type { Planet, DebrisField, NPC } from '@/types/game'
 import { decryptData, encryptData } from './crypto'
 import pkg from '../../package.json'
 
@@ -65,10 +65,48 @@ export const migrateGameData = (): void => {
       universeData.debrisFields = oldData.debrisFields
       delete oldData.debrisFields
     }
+
+    // 修复NPC数据（确保所有必需字段都存在）
+    if (oldData.npcs && Array.isArray(oldData.npcs)) {
+      oldData.npcs.forEach((npc: NPC) => {
+        // 确保NPC有必需的时间字段
+        if (npc.lastSpyTime === undefined) {
+          npc.lastSpyTime = 0
+        }
+        if (npc.lastAttackTime === undefined) {
+          npc.lastAttackTime = 0
+        }
+        // 确保NPC有必需的数组字段
+        if (!npc.fleetMissions) {
+          npc.fleetMissions = []
+        }
+        if (!npc.playerSpyReports) {
+          npc.playerSpyReports = {}
+        }
+        if (!npc.relations) {
+          npc.relations = {}
+        }
+        if (!npc.allies) {
+          npc.allies = []
+        }
+        if (!npc.enemies) {
+          npc.enemies = []
+        }
+      })
+    }
+
+    // 初始化玩家积分（如果不存在）
+    if (oldData.player && oldData.player.points === undefined) {
+      // 积分会在游戏启动时通过 initGame 计算，这里设置为0
+      oldData.player.points = 0
+    }
+
     // 保存迁移后的数据
     localStorage.setItem(universeStorageKey, encryptData(universeData))
     localStorage.setItem(storageKey, encryptData(oldData))
+
+    console.log('[Migration] Game data migrated successfully')
   } catch (error) {
-    console.error(error)
+    console.error('[Migration] Failed to migrate game data:', error)
   }
 }
