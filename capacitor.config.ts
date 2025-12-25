@@ -11,6 +11,15 @@ const config: CapacitorConfig = {
     buildOptions: {
       keystorePath: undefined,
       keystoreAlias: undefined
+    },
+    // 禁用 WebView 文本缩放，防止系统字体设置影响布局
+    webContentsDebuggingEnabled: false,
+    allowMixedContent: false
+  },
+  plugins: {
+    // 禁用键盘自动调整视口
+    Keyboard: {
+      resize: 'none'
     }
   }
 }

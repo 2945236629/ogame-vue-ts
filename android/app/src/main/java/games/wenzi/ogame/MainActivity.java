@@ -3,6 +3,8 @@ package games.wenzi.ogame;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Window;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -26,6 +28,17 @@ public class MainActivity extends BridgeActivity {
         if (controller != null) {
             controller.setAppearanceLightStatusBars(false);
             controller.setAppearanceLightNavigationBars(false);
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // 禁用 WebView 文本缩放，防止系统字体大小设置影响布局
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            WebSettings settings = webView.getSettings();
+            settings.setTextZoom(100); // 固定为 100%，忽略系统字体缩放设置
         }
     }
 }

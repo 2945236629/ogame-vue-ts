@@ -123,6 +123,10 @@
   html {
     /* 平滑过渡 */
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* 禁用文本大小调整，防止移动端自动放大文本 */
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -217,4 +221,22 @@ aside nav a:hover button {
 :root:not(.dark) .tooltip-content-custom {
   background-color: oklch(0.3 0.02 85) !important;
   color: oklch(0.95 0.008 85) !important;
+}
+
+/* 修复 Edge-to-Edge 模式下 Portal 容器的定位问题 */
+[data-reka-portal],
+[data-radix-portal] {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  pointer-events: none;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+[data-reka-portal] > *,
+[data-radix-portal] > * {
+  pointer-events: auto;
 }
